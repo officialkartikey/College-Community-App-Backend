@@ -1,7 +1,7 @@
 import Post from "../models/Post.js";
 
 // 🟢 Create Post
-export const createPost = async (req, res) => {
+export const  createPost = async (req, res) => {
   try {
     const { title, description, category, user } = req.body;
     const file = req.file;

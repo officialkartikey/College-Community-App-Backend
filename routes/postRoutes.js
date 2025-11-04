@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../middleware/uploadMiddleware.js";
+import upload from "multer";
 import { protect } from "../middleware/authMiddleware.js"; // ✅ import auth middleware
 import {
   createPost,
@@ -11,7 +11,7 @@ import {
 const router = express.Router();
 
 // 🟢 Create Post (Protected)
-router.post("/create", protect, upload.single("media"), createPost);
+router.post("/create",  upload, createPost);
 
 // 🟢 Get All Posts (Public)
 router.get("/", getAllPosts);

@@ -16,7 +16,8 @@ app.set("view engine", "ejs");
 app.set("views",path.resolve("./views"));
 
 // ✅ Middleware
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ Serve uploaded media files (so images/videos are accessible from browser)
 app.use("/uploads", express.static("uploads"));
