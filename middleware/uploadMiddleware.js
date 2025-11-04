@@ -1,19 +1,34 @@
 import multer from "multer";
+import fs from "fs";
 import path from "path";
 
+// Define storage engine
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    let folder = "";
+
     if (file.mimetype.startsWith("image")) {
-      cb(null, "uploads/images");
+      folder = "uploads/images";
     } else if (file.mimetype.startsWith("video")) {
-      cb(null, "uploads/videos");
+      folder = "uploads/videos";
     } else {
-      cb(new Error("Invalid file type"), false);
+      folder = "uploads/others";
     }
+
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+    }
+
+    cb(null, folder);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
   },
 });
 
-export const upload = multer({ storage });
+const upload = multer({ storage });
+
+export default upload;
+

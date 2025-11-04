@@ -1,6 +1,6 @@
 import express from "express";
-import upload from "multer";
-import { protect } from "../middleware/authMiddleware.js"; // ✅ import auth middleware
+import upload from "../middleware/uploadMiddleware.js"; // ✅ use our custom multer setup
+import { protect } from "../middleware/authMiddleware.js";
 import {
   createPost,
   getAllPosts,
@@ -11,18 +11,17 @@ import {
 const router = express.Router();
 
 // 🟢 Create Post (Protected)
-router.post("/create",  upload, createPost);
+router.post("/create", protect, upload.single("media"), createPost);
 
 // 🟢 Get All Posts (Public)
 router.get("/", getAllPosts);
 
-// 🟢 Like Post (Protected)
+// 🟢 Like / Dislike
 router.post("/:id/like", protect, likePost);
-
-// 🟢 Dislike Post (Protected)
 router.post("/:id/dislike", protect, dislikePost);
 
 export default router;
+
 
 
 
