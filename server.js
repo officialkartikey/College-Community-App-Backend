@@ -1,16 +1,22 @@
+import path from "path";
 import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js"; // ✅ Added comment routes
+import multer from "multer"; 
 
 dotenv.config();
 
 const app = express();
 
+
+app.set("view engine", "ejs");
+app.set("views",path.resolve("./views"));
+
 // ✅ Middleware
-app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // ✅ Serve uploaded media files (so images/videos are accessible from browser)
 app.use("/uploads", express.static("uploads"));
@@ -31,7 +37,7 @@ app.use("/api/comments", commentRoutes); // Comment routes (add, get, etc.)
 
 // ✅ Root route (for quick testing)
 app.get("/", (req, res) => {
-  res.send("🚀 College Community API is running...");
+  return res.render("homepage.ejs");
 });
 
 // ✅ Start server
