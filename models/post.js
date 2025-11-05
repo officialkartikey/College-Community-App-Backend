@@ -17,6 +17,7 @@ const postSchema = new mongoose.Schema({
   category: {
     type: String,
     enum: [ "Artificial Intelligence (AI)",
+           "technical",
           "Machine Learning",
           "Data Science",
           "Python Programming",
