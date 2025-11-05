@@ -1,4 +1,4 @@
-import Post from "../models/Post.js";
+import Post from "../models/post.js";
 
 // 🟢 Create Post
 export const  createPost = async (req, res) => {
