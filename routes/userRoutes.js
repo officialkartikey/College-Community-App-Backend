@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getRecommendedUsers } from "../controllers/userController.js";
+import { registerUser, loginUser, getRecommendedUsers, getUserEngagement } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -8,16 +8,19 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-// 🔒 Protected Routes (require valid JWT)
+// 🔒 Profile Example
 router.get("/profile", protect, (req, res) => {
   res.status(200).json({
     success: true,
     message: "Welcome to your profile!",
-    user: req.user, // Comes from auth middleware
+    user: req.user,
   });
 });
 
 // 🔒 Recommended Users
 router.get("/recommended", protect, getRecommendedUsers);
+
+// 🔒 Engagement - Posts Liked & Disliked by user
+router.get("/engagement", protect, getUserEngagement);
 
 export default router;

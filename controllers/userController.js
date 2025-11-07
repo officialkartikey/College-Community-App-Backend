@@ -3,6 +3,10 @@ import jwt from "jsonwebtoken";
 import axios from "axios";
 import User from "../models/userModel.js";
 import mongoose from "mongoose";
+import Post from "../models/post.js";
+import Comment from "../models/comment.js";
+
+
 
 
 /**
@@ -144,5 +148,46 @@ export const getRecommendedUsers = async (req, res) => {
       message: "Failed to fetch recommended users",
       error: error.response?.data || error.message
     });
+  }
+};
+
+
+
+export const getUserEngagement = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get basic profile info
+    const user = await User.findById(userId).select("name email profilePic");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // ✅ Posts the user liked
+    const likedPosts = await Post.find({ likes: userId })
+      .populate("user", "name profilePic")
+      .select("content media createdAt");
+
+    // ✅ Posts the user disliked
+    const dislikedPosts = await Post.find({ dislikes: userId })
+      .populate("user", "name profilePic")
+      .select("content media createdAt");
+
+    // ✅ Comments made by the user
+    const userComments = await Comment.find({ user: userId })
+      .populate("post", "content media user")  // post info
+      .populate("user", "name profilePic")     // user info
+      .sort({ createdAt: -1 })                 // newest first
+      .select("text createdAt post");          // what to return
+
+    res.status(200).json({
+      success: true,
+      user,
+      likedPosts,
+      dislikedPosts,
+      comments: userComments,
+    });
+
+  } catch (error) {
+    console.error("Error in engagement API:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
