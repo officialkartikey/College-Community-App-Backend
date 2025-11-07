@@ -7,6 +7,8 @@ import {
   renameGroup,
   addToGroup,
   removeFromGroup,
+       leaveGroup,
+       getGroupMembers,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.post("/group", protect, createGroupChat);
 router.put("/group/rename", protect, renameGroup);
 router.put("/group/add", protect, addToGroup);
 router.put("/group/remove", protect, removeFromGroup);
+router.post("/leave", protect, leaveGroup);
+router.get("/members/:chatId", protect, getGroupMembers);
 
 export default router;

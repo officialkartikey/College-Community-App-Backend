@@ -126,3 +126,35 @@ export const getRecommendedFeed = async (req, res) => {
 
 
 
+export const deletePost = async (req, res) => {
+  try {
+    const postId = req.params.id;   // Post ID from URL
+    const userId = req.user._id;    // Logged-in user ID from token
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if the logged-in user is the owner of the post
+    if (post.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Unauthorized: You cannot delete this post" });
+    }
+
+    // Delete post
+    await Post.findByIdAndDelete(postId);
+
+    res.status(200).json({
+      success: true,
+      message: "Post deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error deleting post:", error.message);
+    res.status(500).json({ message: "Failed to delete post", error: error.message });
+  }
+};
+
+

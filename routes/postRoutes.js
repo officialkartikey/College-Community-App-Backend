@@ -6,7 +6,8 @@ import {
   getAllPosts, 
   likePost, 
   dislikePost, 
-  getRecommendedFeed 
+  getRecommendedFeed,
+  deletePost
 } from "../controllers/postController.js";
 
 const router = express.Router();
@@ -15,7 +16,7 @@ const router = express.Router();
 router.post("/create", protect, upload.single("media"), createPost);
 
 // 🟢 Get All Posts (Protected)
-router.get("/all", protect, getAllPosts);  // fetch all posts
+router.get("/all", protect, getAllPosts);
 
 // 🟢 Recommended Feed (Protected)
 router.get("/feed", protect, getRecommendedFeed);
@@ -23,6 +24,9 @@ router.get("/feed", protect, getRecommendedFeed);
 // 🟢 Like / Dislike Post (Protected)
 router.post("/:id/like", protect, likePost);
 router.post("/:id/dislike", protect, dislikePost);
+
+// 🟢 Delete Post (Protected)
+router.delete("/:id", protect, deletePost);
 
 export default router;
 

@@ -116,3 +116,65 @@ export const removeFromGroup = async (req, res) => {
 
   res.status(200).json(chat);
 };
+
+// ✅ User leaves a group chat
+export const leaveGroup = async (req, res) => {
+  try {
+    const { chatId } = req.body;
+    const userId = req.user._id;
+
+    if (!chatId) {
+      return res.status(400).json({ message: "chatId is required" });
+    }
+
+    // Remove the user from the group
+    const chat = await Chat.findByIdAndUpdate(
+      chatId,
+      { $pull: { users: userId } },
+      { new: true }
+    )
+      .populate("users", "-password")
+      .populate("groupAdmin", "-password");
+
+    if (!chat) {
+      return res.status(404).json({ message: "Group chat not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "You have left the group",
+      chat,
+    });
+
+  } catch (error) {
+    console.error("Error leaving group:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ Get all members of a group chat
+export const getGroupMembers = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    if (!chatId) {
+      return res.status(400).json({ message: "chatId is required" });
+    }
+
+    const chat = await Chat.findById(chatId).populate("users", "name email profilePic");
+
+    if (!chat) {
+      return res.status(404).json({ message: "Group chat not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      chatName: chat.chatName,
+      members: chat.users,
+      groupAdmin: chat.groupAdmin,
+    });
+  } catch (error) {
+    console.error("Error fetching group members:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
