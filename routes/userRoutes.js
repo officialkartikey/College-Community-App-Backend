@@ -1,5 +1,9 @@
 import express from "express";
-import { registerUser, loginUser, getRecommendedUsers, getUserEngagement } from "../controllers/userController.js";
+import { registerUser, 
+  loginUser,
+   getRecommendedUsers,
+    getUserEngagement,
+  getAllUsers, } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -22,5 +26,6 @@ router.get("/recommended", protect, getRecommendedUsers);
 
 // 🔒 Engagement - Posts Liked & Disliked by user
 router.get("/engagement", protect, getUserEngagement);
+router.get("/all", protect, getAllUsers);
 
 export default router;

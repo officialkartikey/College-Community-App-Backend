@@ -191,3 +191,26 @@ export const getUserEngagement = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
+
+// ✅ Get all registered users
+export const getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users, exclude password for security
+    const users = await User.find().select("-password");
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
