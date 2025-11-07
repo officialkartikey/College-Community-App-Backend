@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser } from "../controllers/userController.js";
+import { registerUser, loginUser, getRecommendedUsers } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.get("/profile", protect, (req, res) => {
   });
 });
 
-// Example: you can add more protected routes here
-// router.put("/update-profile", protect, updateProfile);
+// 🔒 Recommended Users
+router.get("/recommended", protect, getRecommendedUsers);
 
 export default router;

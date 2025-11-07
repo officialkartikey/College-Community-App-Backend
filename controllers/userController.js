@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 import User from "../models/userModel.js";
+import mongoose from "mongoose";
+
 
 /**
  * @desc Register a new user
@@ -11,22 +14,18 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, branch, interests, year } = req.body;
 
-    // 1️⃣ Check for required fields
     if (!name || !email || !password || !branch || !year) {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
-    // 2️⃣ Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists with this email" });
     }
 
-    // 3️⃣ Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4️⃣ Create new user
     const newUser = await User.create({
       name,
       email,
@@ -36,7 +35,6 @@ export const registerUser = async (req, res) => {
       year,
     });
 
-    // 5️⃣ Generate JWT token
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
@@ -71,31 +69,26 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ Validate input
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // 2️⃣ Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // 3️⃣ Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // 4️⃣ Generate JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // 5️⃣ Send response
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -112,5 +105,44 @@ export const loginUser = async (req, res) => {
   } catch (error) {
     console.error("Error in loginUser:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+export const getRecommendedUsers = async (req, res) => {
+  try {
+    const currentUserId = req.user._id.toString();
+
+    // Call FastAPI recommendation service
+    const response = await axios.post(
+      "https://user-recommendation-1.onrender.com/recommend_users/",
+      { user_id: currentUserId, top_n: 10 },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (!response.data || !response.data.recommended_users) {
+      return res.status(500).json({
+        message: "FastAPI did not return recommended users",
+        data: response.data
+      });
+    }
+
+    const recommendedUserIds = response.data.recommended_users.map(u => u.user_id);
+
+    // Convert string IDs to ObjectIds for MongoDB query
+    const recommendedUserObjectIds = recommendedUserIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const recommendedUsers = await User.find({ _id: { $in: recommendedUserObjectIds } }).select("-password");
+
+    res.status(200).json({
+      success: true,
+      recommended_users: recommendedUsers
+    });
+  } catch (error) {
+    console.error("Error in getRecommendedUsers:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      message: "Failed to fetch recommended users",
+      error: error.response?.data || error.message
+    });
   }
 };
