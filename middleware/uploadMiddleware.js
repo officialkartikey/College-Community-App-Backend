@@ -2,7 +2,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 
-// Define storage engine
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let folder = "";
@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
       folder = "uploads/others";
     }
 
-    // Create folder if it doesn't exist
+    
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });
     }

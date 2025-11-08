@@ -2,7 +2,7 @@ import Message from "../models/messageModel.js";
 import Chat from "../models/chatModel.js";
 import User from "../models/userModel.js";
 
-// ✅ Send Message
+
 export const sendMessage = async (req, res) => {
   const { content, chatId } = req.body;
 
@@ -24,7 +24,7 @@ export const sendMessage = async (req, res) => {
       select: "name email",
     });
 
-    // Update latest message in chat
+    
     await Chat.findByIdAndUpdate(chatId, { latestMessage: message });
 
     res.status(200).json(message);
@@ -33,7 +33,7 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// ✅ Fetch Messages of a chat
+
 export const fetchMessages = async (req, res) => {
   try {
     const messages = await Message.find({ chat: req.params.chatId })

@@ -1,16 +1,16 @@
 import axios from "axios";
 import Comment from "../models/comment.js";
 
-const SPAM_API_URL = "https://spam-yege.onrender.com/predict"; // final working endpoint
-const SPAM_THRESHOLD = 0.5; // score >= 0.5 → spam
-const SPAM_ACTION = "reject"; // "reject" = block, "flag" = save but marked as spam
+const SPAM_API_URL = "https://spam-yege.onrender.com/predict"; 
+const SPAM_THRESHOLD = 0.5; 
+const SPAM_ACTION = "reject"; 
 
 async function querySpamApi(text) {
   try {
     const response = await axios.post(SPAM_API_URL, { text });
     const data = response.data;
 
-    // Expected formats supported here:
+    
     const score = data.probability || data.score || null;
     const isSpam =
       data.spam ||
@@ -26,7 +26,7 @@ async function querySpamApi(text) {
     };
   } catch (err) {
     console.log("⚠️ Spam API unavailable → skipping spam check.");
-    return { checked: false }; // Fail-safe: do not block comments if API is down
+    return { checked: false }; 
   }
 }
 
@@ -37,10 +37,10 @@ export const addComment = async (req, res) => {
       return res.status(400).json({ message: "postId, user and text are required." });
     }
 
-    // Call spam model
+    
     const spamResult = await querySpamApi(text);
 
-    // If API detected spam AND action is reject → block comment
+    
     if (spamResult.checked && spamResult.isSpam && SPAM_ACTION === "reject") {
       return res.status(400).json({
         message: "❌ Comment blocked: System detected spam.",
@@ -49,7 +49,7 @@ export const addComment = async (req, res) => {
       });
     }
 
-    // Otherwise → save comment (flag if spam)
+    
     const comment = await Comment.create({
       post: postId,
       user,
@@ -60,7 +60,7 @@ export const addComment = async (req, res) => {
       spamLabel: spamResult.label,
     });
 
-    // If spam but flagged → tell user
+    
     if (spamResult.checked && spamResult.isSpam && SPAM_ACTION === "flag") {
       return res.status(201).json({
         message: "⚠️ Comment saved but flagged as spam for moderation.",

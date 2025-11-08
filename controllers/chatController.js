@@ -1,7 +1,7 @@
 import Chat from "../models/chatModel.js";
 import User from "../models/userModel.js";
 
-// ✅ Create or Get One-to-One Chat
+
 export const accessChat = async (req, res) => {
   const { userId } = req.body;
 
@@ -18,7 +18,7 @@ export const accessChat = async (req, res) => {
 
   if (chat) return res.status(200).json(chat);
 
-  // If chat doesn't exist → create new chat
+  
   const newChat = await Chat.create({
     chatName: "Direct Chat",
     isGroupChat: false,
@@ -29,7 +29,7 @@ export const accessChat = async (req, res) => {
   res.status(200).json(fullChat);
 };
 
-// ✅ Fetch all chats of logged user
+
 export const fetchChats = async (req, res) => {
   try {
     const chats = await Chat.find({ users: req.user._id })
@@ -44,9 +44,9 @@ export const fetchChats = async (req, res) => {
   }
 };
 
-// ✅ Create Group Chat
+
 export const createGroupChat = async (req, res) => {
-  const { name, users } = req.body;  // users should be array
+  const { name, users } = req.body;  
 
   if (!name || !users) {
     return res.status(400).json({ message: "Please provide name & users" });
@@ -56,7 +56,7 @@ export const createGroupChat = async (req, res) => {
     return res.status(400).json({ message: "Group must have at least 2 members" });
   }
 
-  users.push(req.user._id); // include creator
+  users.push(req.user._id); 
 
   const groupChat = await Chat.create({
     chatName: name,
@@ -72,7 +72,7 @@ export const createGroupChat = async (req, res) => {
   res.status(200).json(fullGroupChat);
 };
 
-// ✅ Rename Group
+
 export const renameGroup = async (req, res) => {
   const { chatId, chatName } = req.body;
 
@@ -87,7 +87,7 @@ export const renameGroup = async (req, res) => {
   res.status(200).json(chat);
 };
 
-// ✅ Add User to Group
+
 export const addToGroup = async (req, res) => {
   const { chatId, userId } = req.body;
 
@@ -102,7 +102,7 @@ export const addToGroup = async (req, res) => {
   res.status(200).json(chat);
 };
 
-// ✅ Remove User from Group
+
 export const removeFromGroup = async (req, res) => {
   const { chatId, userId } = req.body;
 
@@ -117,7 +117,7 @@ export const removeFromGroup = async (req, res) => {
   res.status(200).json(chat);
 };
 
-// ✅ User leaves a group chat
+
 export const leaveGroup = async (req, res) => {
   try {
     const { chatId } = req.body;
@@ -127,7 +127,7 @@ export const leaveGroup = async (req, res) => {
       return res.status(400).json({ message: "chatId is required" });
     }
 
-    // Remove the user from the group
+    
     const chat = await Chat.findByIdAndUpdate(
       chatId,
       { $pull: { users: userId } },
@@ -152,7 +152,7 @@ export const leaveGroup = async (req, res) => {
   }
 };
 
-// ✅ Get all members of a group chat
+
 export const getGroupMembers = async (req, res) => {
   try {
     const { chatId } = req.params;

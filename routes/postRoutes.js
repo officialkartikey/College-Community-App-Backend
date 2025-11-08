@@ -1,5 +1,5 @@
 import express from "express";
-import upload from "../middleware/uploadMiddleware.js"; // ✅ custom multer
+import upload from "../middleware/uploadMiddleware.js"; 
 import { protect } from "../middleware/authMiddleware.js";
 import { 
   createPost, 
@@ -12,20 +12,19 @@ import {
 
 const router = express.Router();
 
-// 🟢 Create Post (Protected)
+
 router.post("/create", protect, upload.single("media"), createPost);
 
-// 🟢 Get All Posts (Protected)
+
 router.get("/all", protect, getAllPosts);
 
-// 🟢 Recommended Feed (Protected)
+
 router.get("/feed", protect, getRecommendedFeed);
 
-// 🟢 Like / Dislike Post (Protected)
+
 router.post("/:id/like", protect, likePost);
 router.post("/:id/dislike", protect, dislikePost);
 
-// 🟢 Delete Post (Protected)
 router.delete("/:id", protect, deletePost);
 
 export default router;

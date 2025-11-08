@@ -117,7 +117,7 @@ export const getRecommendedUsers = async (req, res) => {
   try {
     const currentUserId = req.user._id.toString();
 
-    // Call FastAPI recommendation service
+    
     const response = await axios.post(
       "https://user-recommendation-1.onrender.com/recommend_users/",
       { user_id: currentUserId, top_n: 10 },
@@ -133,7 +133,7 @@ export const getRecommendedUsers = async (req, res) => {
 
     const recommendedUserIds = response.data.recommended_users.map(u => u.user_id);
 
-    // Convert string IDs to ObjectIds for MongoDB query
+    
     const recommendedUserObjectIds = recommendedUserIds.map(id => new mongoose.Types.ObjectId(id));
 
     const recommendedUsers = await User.find({ _id: { $in: recommendedUserObjectIds } }).select("-password");
@@ -157,26 +157,26 @@ export const getUserEngagement = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Get basic profile info
+    
     const user = await User.findById(userId).select("name email profilePic");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Posts the user liked
+    
     const likedPosts = await Post.find({ likes: userId })
       .populate("user", "name profilePic")
       .select("content media createdAt");
 
-    // ✅ Posts the user disliked
+    
     const dislikedPosts = await Post.find({ dislikes: userId })
       .populate("user", "name profilePic")
       .select("content media createdAt");
 
-    // ✅ Comments made by the user
+    
     const userComments = await Comment.find({ user: userId })
-      .populate("post", "content media user")  // post info
-      .populate("user", "name profilePic")     // user info
-      .sort({ createdAt: -1 })                 // newest first
-      .select("text createdAt post");          // what to return
+      .populate("post", "content media user")  
+      .populate("user", "name profilePic")     
+      .sort({ createdAt: -1 })                 
+      .select("text createdAt post");          
 
     res.status(200).json({
       success: true,
@@ -194,10 +194,10 @@ export const getUserEngagement = async (req, res) => {
 
 
 
-// ✅ Get all registered users
+
 export const getAllUsers = async (req, res) => {
   try {
-    // Fetch all users, exclude password for security
+    
     const users = await User.find().select("-password");
 
     res.status(200).json({

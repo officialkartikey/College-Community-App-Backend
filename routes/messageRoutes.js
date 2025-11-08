@@ -4,7 +4,7 @@ import { sendMessage, fetchMessages } from "../controllers/messageController.js"
 
 const router = express.Router();
 
-router.post("/", protect, sendMessage);          // Send message
-router.get("/:chatId", protect, fetchMessages);  // Get messages of chat
+router.post("/", protect, sendMessage);          
+router.get("/:chatId", protect, fetchMessages);  
 
 export default router;
