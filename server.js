@@ -5,75 +5,69 @@ import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
-import chatRoutes from "./routes/chatRoutes.js";        // ✅ Add chat routes
-import messageRoutes from "./routes/messageRoutes.js";  // ✅ Add message routes
-import multer from "multer"; 
+import chatRoutes from "./routes/chatRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 import http from "http";
 import { Server } from "socket.io";
 
 dotenv.config();
 
 const app = express();
+const __dirname = path.resolve(); // ✅ For static path on Render
 
-// ✅ Create HTTP server (required for socket.io)
+// ✅ Create HTTP server (for socket.io)
 const server = http.createServer(app);
 
-// ✅ Setup socket server
+// ✅ Setup socket.io with CORS for Render
 const io = new Server(server, {
   pingTimeout: 60000,
-  cors: { origin: "*" },
+  cors: {
+    origin: "*", // or use your frontend Render URL for security
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
   console.log("⚡ Socket Connected:", socket.id);
 
-  // User joins personal room
   socket.on("setup", (userData) => {
     socket.join(userData._id);
     socket.emit("connected");
   });
 
-  // User joins chat room
   socket.on("join chat", (room) => {
     socket.join(room);
     console.log("📌 User joined chat:", room);
   });
 
-  // Real-time outgoing message to multiple users
   socket.on("new message", (message) => {
     const chat = message.chat;
-    if (!chat || !chat.users) return;
-
+    if (!chat?.users) return;
     chat.users.forEach((user) => {
-      if (user._id === message.sender._id) return; // Skip sender
+      if (user._id === message.sender._id) return;
       socket.to(user._id).emit("message received", message);
     });
   });
 
   socket.on("disconnect", () => {
-    console.log("❌ Socket Disconnected");
+    console.log("❌ Socket Disconnected:", socket.id);
   });
 });
 
 // ============================================================================
 // ✅ APP CONFIG
 // ============================================================================
-
-app.set("view engine", "ejs");
-app.set("views", path.resolve("./views"));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// ✅ Connect to MongoDB
+// ✅ Serve uploads folder correctly on Render
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ✅ MongoDB Connection
 mongoose
-  .connect(process.env.MONGO_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URL)
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err.message));
 
 // ============================================================================
 // ✅ ROUTES
@@ -81,17 +75,18 @@ mongoose
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
-app.use("/api/chat", chatRoutes);        // ✅ Chat APIs
-app.use("/api/message", messageRoutes);  // ✅ Message APIs
+app.use("/api/chat", chatRoutes);
+app.use("/api/message", messageRoutes);
 
+// ✅ Default route
 app.get("/", (req, res) => {
-  return res.render("homepage.ejs");
+  res.send("API is running successfully 🚀");
 });
 
 // ============================================================================
-// ✅ START SERVER
+// ✅ START SERVER (Render requires process.env.PORT)
 // ============================================================================
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () =>
-  console.log(`🚀 Server + Socket Running on port ${PORT}`)
-);
+server.listen(PORT, () => {
+  console.log(`🚀 Server + Socket Running on port ${PORT}`);
+});
