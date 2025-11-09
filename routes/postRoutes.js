@@ -9,7 +9,8 @@ import {
   getRecommendedFeed,
   deletePost,
   updatePost  ,
-  getLikedPosts
+  getLikedPosts,
+  getMyPosts,
 } from "../controllers/postController.js";
 
 const router = express.Router();
@@ -22,6 +23,7 @@ router.post("/:id/like", protect, likePost);
 router.post("/:id/dislike", protect, dislikePost);
 router.delete("/:id", protect, deletePost);
 router.get("/liked", protect, getLikedPosts);
+router.get("/mine", protect, getMyPosts);
 
 export default router;
 

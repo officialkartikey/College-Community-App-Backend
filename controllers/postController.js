@@ -258,3 +258,30 @@ export const getLikedPosts = async (req, res) => {
 };
 
 
+export const getMyPosts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 🔹 Find all posts created by this user
+    const myPosts = await Post.find({ user: userId })
+      .populate("user", "name email profilePic") // Include creator details
+      .sort({ createdAt: -1 }); // Newest first
+
+    if (!myPosts.length) {
+      return res.status(404).json({
+        success: false,
+        message: "You haven't posted anything yet.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: myPosts.length,
+      posts: myPosts,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching user posts:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
