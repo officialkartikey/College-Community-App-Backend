@@ -29,7 +29,7 @@ const postSchema = new mongoose.Schema(
         "Data Science",
         "Python Programming",
         "Web Development",
-        "App Development",
+       
         "AR / VR",
         "Cloud Computing",
         "Cyber Security",
