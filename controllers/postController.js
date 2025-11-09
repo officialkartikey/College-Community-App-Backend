@@ -30,15 +30,31 @@ const checkSpam = async (text) => {
 export const createPost = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { title, description, category } = req.body;
+    let { title, description, category } = req.body;
     const file = req.file;
 
+    // 🧩 Validate input
     if (!userId) {
       return res.status(401).json({ message: "Authentication failed. User ID missing." });
     }
-
     if (!file) {
-      return res.status(400).json({ message: "No file uploaded." });
+      return res.status(400).json({ message: "No media file uploaded." });
+    }
+
+    // 🧠 Normalize categories
+    // Handles: array, JSON string, or comma-separated string
+    if (typeof category === "string") {
+      try {
+        // Case 1: JSON string like '["Tech","AI"]'
+        const parsed = JSON.parse(category);
+        category = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // Case 2: comma-separated like 'Tech,AI,Education'
+        category = category.split(",").map((c) => c.trim());
+      }
+    }
+    if (!Array.isArray(category) || category.length === 0) {
+      return res.status(400).json({ message: "At least one category is required." });
     }
 
     // 🔍 Spam check
@@ -47,13 +63,13 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "Spam content detected. Post rejected." });
     }
 
-    // ☁️ Upload file to Cloudinary
+    // ☁️ Upload to Cloudinary
     const result = await cloudinary.uploader.upload(file.path, {
       folder: "college-community/posts",
-      resource_type: "auto", // auto detects image or video
+      resource_type: "auto",
     });
 
-    // 🧩 Create new post document
+    // 🧩 Save Post in DB
     const newPost = new Post({
       title,
       description,
@@ -77,8 +93,6 @@ export const createPost = async (req, res) => {
     res.status(500).json({ message: "Failed to create post.", error: error.message });
   }
 };
-
-
 
 export const updatePost = async (req, res) => {
   try {

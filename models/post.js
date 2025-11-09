@@ -20,33 +20,35 @@ const postSchema = new mongoose.Schema(
       trim: true,
     },
 
-    category: {
-      type: String,
-      enum: [
-        "Artificial Intelligence (AI)",
-        "Technical",
-        "Machine Learning",
-        "Data Science",
-        "Python Programming",
-        "Web Development",
-       
-        "AR / VR",
-        "Cloud Computing",
-        "Cyber Security",
-        "Robotics",
-        "Electronics",
-        "Mechanical Design",
-        "CAD / CAM",
-        "Electrical Systems",
-        "Embedded Systems",
-        "Blockchain",
-        "Quantum Computing",
-        "Competitive Coding",
-        "Hackathons",
-        "Research & Innovation",
-      ],
-      required: true,
-    },
+    // ✅ Support multiple categories (array of strings)
+    category: [
+      {
+        type: String,
+        enum: [
+          "Artificial Intelligence (AI)",
+          "Technical",
+          "Machine Learning",
+          "Data Science",
+          "Python Programming",
+          "Web Development",
+          "AR / VR",
+          "Cloud Computing",
+          "Cyber Security",
+          "Robotics",
+          "Electronics",
+          "Mechanical Design",
+          "CAD / CAM",
+          "Electrical Systems",
+          "Embedded Systems",
+          "Blockchain",
+          "Quantum Computing",
+          "Competitive Coding",
+          "Hackathons",
+          "Research & Innovation",
+        ],
+        required: true,
+      },
+    ],
 
     mediaType: {
       type: String,
@@ -57,9 +59,8 @@ const postSchema = new mongoose.Schema(
       type: String,
     },
 
-    // ✅ Add this field to store Cloudinary file reference
     public_id: {
-      type: String,
+      type: String, // Cloudinary reference
     },
 
     likes: [
