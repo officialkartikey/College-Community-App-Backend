@@ -7,27 +7,35 @@ import {
   likePost, 
   dislikePost, 
   getRecommendedFeed,
-  deletePost
+  deletePost,
+  updatePost  
 } from "../controllers/postController.js";
 
 const router = express.Router();
 
-
+// 🟢 Create Post (Cloudinary)
 router.post("/create", protect, upload.single("media"), createPost);
 
+// ✏️ Update Post (Cloudinary)
+router.put("/:id", protect, upload.single("media"), updatePost);
 
+// 📋 Get All Posts
 router.get("/all", protect, getAllPosts);
 
-
+// ⚙️ Recommended Feed
 router.get("/feed", protect, getRecommendedFeed);
 
-
+// ❤️ Like Post
 router.post("/:id/like", protect, likePost);
+
+// 💔 Dislike Post
 router.post("/:id/dislike", protect, dislikePost);
 
+// 🗑️ Delete Post
 router.delete("/:id", protect, deletePost);
 
 export default router;
+
 
 
 

@@ -1,34 +1,23 @@
 import multer from "multer";
-import fs from "fs";
-import path from "path";
 
+// We don’t need local folders anymore because Cloudinary uploads directly from temp file
+const storage = multer.diskStorage({});
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let folder = "";
-
-    if (file.mimetype.startsWith("image")) {
-      folder = "uploads/images";
-    } else if (file.mimetype.startsWith("video")) {
-      folder = "uploads/videos";
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // optional: limit 50MB
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.mimetype.startsWith("video/")
+    ) {
+      cb(null, true);
     } else {
-      folder = "uploads/others";
+      cb(new Error("Only image and video files are allowed!"), false);
     }
-
-    
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
-    }
-
-    cb(null, folder);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
   },
 });
 
-const upload = multer({ storage });
-
 export default upload;
+
 
