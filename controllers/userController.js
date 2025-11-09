@@ -5,6 +5,8 @@ import User from "../models/userModel.js";
 import mongoose from "mongoose";
 import Post from "../models/post.js";
 import Comment from "../models/comment.js";
+import cloudinary from "../config/cloudinary.js";
+
 
 
 
@@ -167,6 +169,57 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
+
+
+
+export const uploadProfilePhoto = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    if (!file.buffer || file.buffer.length === 0) {
+      return res.status(400).json({ message: "Empty file buffer" });
+    }
+
+    // Use Promise-based stream upload
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "profile_photos",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+
+      uploadStream.end(file.buffer); // ✅ Send file buffer
+    });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profileImage: result.secure_url },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Profile photo uploaded successfully",
+      imageUrl: result.secure_url,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({
+      message: "Cloudinary upload failed",
       error: error.message,
     });
   }

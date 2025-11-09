@@ -1,32 +1,38 @@
 import express from "express";
-import upload from "../middleware/uploadMiddleware.js"; 
+import { uploadToDisk } from "../middleware/uploadMiddleware.js"; // ✅ Correct import
 import { protect } from "../middleware/authMiddleware.js";
-import { 
-  createPost, 
-  getAllPosts, 
-  likePost, 
-  dislikePost, 
+import {
+  createPost,
+  getAllPosts,
+  likePost,
+  dislikePost,
   getRecommendedFeed,
   deletePost,
-  updatePost  ,
+  updatePost,
   getLikedPosts,
   getMyPosts,
 } from "../controllers/postController.js";
 
 const router = express.Router();
 
-router.post("/create", protect, upload.single("media"), createPost);
-router.put("/:id", protect, upload.single("media"), updatePost);
+// 🔹 Create / Update Post (Image or Video Upload)
+router.post("/create", protect, uploadToDisk.single("media"), createPost);
+router.put("/:id", protect, uploadToDisk.single("media"), updatePost);
+
+// 🔹 Fetch Posts
 router.get("/all", protect, getAllPosts);
 router.get("/feed", protect, getRecommendedFeed);
-router.post("/:id/like", protect, likePost);
-router.post("/:id/dislike", protect, dislikePost);
-router.delete("/:id", protect, deletePost);
 router.get("/liked", protect, getLikedPosts);
 router.get("/mine", protect, getMyPosts);
 
-export default router;
+// 🔹 Like / Dislike
+router.post("/:id/like", protect, likePost);
+router.post("/:id/dislike", protect, dislikePost);
 
+// 🔹 Delete
+router.delete("/:id", protect, deletePost);
+
+export default router;
 
 
 
