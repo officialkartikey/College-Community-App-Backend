@@ -41,19 +41,19 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded." });
     }
 
-    
+    // 🔍 Spam check
     const spamResult = await checkSpam(`${title} ${description}`);
     if (spamResult.isSpam && spamResult.action === "reject") {
       return res.status(400).json({ message: "Spam content detected. Post rejected." });
     }
 
-    
+    // ☁️ Upload file to Cloudinary
     const result = await cloudinary.uploader.upload(file.path, {
       folder: "college-community/posts",
-      resource_type: "auto",
+      resource_type: "auto", // auto detects image or video
     });
 
-   
+    // 🧩 Create new post document
     const newPost = new Post({
       title,
       description,
@@ -68,15 +68,16 @@ export const createPost = async (req, res) => {
     await newPost.save();
 
     res.status(201).json({
-      message: "Post created successfully",
+      message: "✅ Post created successfully",
       post: newPost,
       spamCheck: spamResult,
     });
   } catch (error) {
-    console.error("Error creating post:", error);
+    console.error("❌ Error creating post:", error);
     res.status(500).json({ message: "Failed to create post.", error: error.message });
   }
 };
+
 
 
 export const updatePost = async (req, res) => {
