@@ -191,36 +191,53 @@ export const getAllPosts = async (req, res) => {
   }
 };
 
+
 export const getRecommendedFeed = async (req, res) => {
   try {
     const userId = req.user._id.toString();
+    console.log("📡 Fetching recommendations for user:", userId);
 
+    // 1️⃣ Try to get AI-based recommendations
     const response = await axios.post(
       "https://feed-recommendation-3.onrender.com/recommend_posts/",
       { user_id: userId },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" }, timeout: 10000 } // 10s timeout
     );
 
     const recommendedPosts = response.data.recommendations;
+
+    // 2️⃣ If API returns empty, use fallback feed
     if (!Array.isArray(recommendedPosts) || recommendedPosts.length === 0) {
-      return res.status(200).json([]);
+      console.warn("⚠️ No recommendations — returning fallback feed.");
+      const fallback = await Post.find()
+        .populate("user", "name email")
+        .sort({ createdAt: -1 })
+        .limit(20);
+      return res.status(200).json(fallback);
     }
 
-    const recommendedIds = recommendedPosts.map((p) => p.post_id);
-    let posts = await Post.find({ _id: { $in: recommendedIds } }).populate("user", "name email");
+    // 3️⃣ Otherwise, fetch the recommended posts from DB
+    const ids = recommendedPosts.map((p) => p.post_id);
+    let posts = await Post.find({ _id: { $in: ids } }).populate("user", "name email");
+    posts = ids.map((id) => posts.find((p) => p._id.toString() === id)).filter(Boolean);
 
-    // Preserve order
-    posts = recommendedIds.map((id) => posts.find((p) => p._id.toString() === id)).filter(Boolean);
-
+    // ✅ Success
     res.status(200).json(posts);
   } catch (error) {
-    console.error("Feed Recommendation Error:", error.response?.data || error.message);
-    res.status(error.response?.status || 500).json({
-      message: "Error generating recommended feed",
-      error: error.response?.data || error.message,
-    });
+    // 4️⃣ If ANY error occurs — no crash, no spam, fallback instead
+    console.error("❌ Feed Recommendation Error:", error.message);
+
+    // fallback feed: show recent posts from DB
+    const fallback = await Post.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    // Return 200 OK with fallback posts (not 500)
+    res.status(200).json(fallback);
   }
 };
+
 
 export const deletePost = async (req, res) => {
   try {
