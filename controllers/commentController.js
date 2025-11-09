@@ -73,3 +73,37 @@ export const addComment = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getCommentsByPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10; // default 10 comments per page
+    const skip = (page - 1) * limit;
+
+    if (!postId) {
+      return res.status(400).json({ message: "postId is required." });
+    }
+
+    // 🔹 Fetch total comments count for this post
+    const totalComments = await Comment.countDocuments({ post: postId });
+
+    // 🔹 Fetch paginated comments (latest first)
+    const comments = await Comment.find({ post: postId })
+      .populate("user", "name email profilePic")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      totalComments,
+      currentPage: page,
+      totalPages: Math.ceil(totalComments / limit),
+      comments,
+    });
+  } catch (error) {
+    console.error("Error fetching comments:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

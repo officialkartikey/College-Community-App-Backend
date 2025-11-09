@@ -152,49 +152,6 @@ export const getRecommendedUsers = async (req, res) => {
 };
 
 
-
-export const getUserEngagement = async (req, res) => {
-  try {
-    const userId = req.user._id;
-
-    
-    const user = await User.findById(userId).select("name email profilePic");
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    
-    const likedPosts = await Post.find({ likes: userId })
-      .populate("user", "name profilePic")
-      .select("content media createdAt");
-
-    
-    const dislikedPosts = await Post.find({ dislikes: userId })
-      .populate("user", "name profilePic")
-      .select("content media createdAt");
-
-    
-    const userComments = await Comment.find({ user: userId })
-      .populate("post", "content media user")  
-      .populate("user", "name profilePic")     
-      .sort({ createdAt: -1 })                 
-      .select("text createdAt post");          
-
-    res.status(200).json({
-      success: true,
-      user,
-      likedPosts,
-      dislikedPosts,
-      comments: userComments,
-    });
-
-  } catch (error) {
-    console.error("Error in engagement API:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-
-
-
 export const getAllUsers = async (req, res) => {
   try {
     

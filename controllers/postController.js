@@ -2,9 +2,7 @@ import Post from "../models/post.js";
 import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
 
-// ==========================
-// 🧠 Helper: Spam Detection
-// ==========================
+
 const checkSpam = async (text) => {
   try {
     const response = await axios.post(
@@ -28,9 +26,7 @@ const checkSpam = async (text) => {
   }
 };
 
-// ==========================
-// 🟢 CREATE POST (Cloudinary + Spam Check)
-// ==========================
+
 export const createPost = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -45,19 +41,19 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded." });
     }
 
-    // 🧠 Spam check before upload
+    
     const spamResult = await checkSpam(`${title} ${description}`);
     if (spamResult.isSpam && spamResult.action === "reject") {
       return res.status(400).json({ message: "Spam content detected. Post rejected." });
     }
 
-    // ✅ Upload to Cloudinary
+    
     const result = await cloudinary.uploader.upload(file.path, {
       folder: "college-community/posts",
       resource_type: "auto",
     });
 
-    // ✅ Create new post entry
+   
     const newPost = new Post({
       title,
       description,
@@ -82,9 +78,7 @@ export const createPost = async (req, res) => {
   }
 };
 
-// ==========================
-// ✏️ UPDATE POST (Cloudinary + Spam Check)
-// ==========================
+
 export const updatePost = async (req, res) => {
   try {
     const postId = req.params.id;
@@ -99,7 +93,7 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized: You cannot edit this post" });
     }
 
-    // 🧠 Spam check (only if title or description changed)
+   
     if (title || description) {
       const spamResult = await checkSpam(`${title || post.title} ${description || post.description}`);
       if (spamResult.isSpam && spamResult.action === "reject") {
@@ -107,7 +101,7 @@ export const updatePost = async (req, res) => {
       }
     }
 
-    // 🖼️ If new media uploaded → replace on Cloudinary
+    
     if (file) {
       if (post.public_id) {
         await cloudinary.uploader.destroy(post.public_id, {
@@ -125,7 +119,7 @@ export const updatePost = async (req, res) => {
       post.mediaType = file.mimetype.startsWith("image") ? "image" : "video";
     }
 
-    // 📝 Update text fields
+    
     if (title) post.title = title;
     if (description) post.description = description;
     if (category) post.category = category;
@@ -138,9 +132,7 @@ export const updatePost = async (req, res) => {
   }
 };
 
-// ==========================
-// ❤️ LIKE POST
-// ==========================
+
 export const likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -158,9 +150,6 @@ export const likePost = async (req, res) => {
   }
 };
 
-// ==========================
-// 💔 DISLIKE POST
-// ==========================
 export const dislikePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -178,9 +167,6 @@ export const dislikePost = async (req, res) => {
   }
 };
 
-// ==========================
-// 🧾 GET ALL POSTS
-// ==========================
 export const getAllPosts = async (req, res) => {
   try {
     const posts = await Post.find().populate("user", "name email");
@@ -190,9 +176,6 @@ export const getAllPosts = async (req, res) => {
   }
 };
 
-// ==========================
-// 🤖 RECOMMENDED FEED
-// ==========================
 export const getRecommendedFeed = async (req, res) => {
   try {
     const userId = req.user._id.toString();
@@ -224,9 +207,6 @@ export const getRecommendedFeed = async (req, res) => {
   }
 };
 
-// ==========================
-// 🗑️ DELETE POST (Cloudinary + MongoDB)
-// ==========================
 export const deletePost = async (req, res) => {
   try {
     const postId = req.params.id;
@@ -239,14 +219,14 @@ export const deletePost = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized: You cannot delete this post" });
     }
 
-    // ✅ Delete file from Cloudinary
+   
     if (post.public_id) {
       await cloudinary.uploader.destroy(post.public_id, {
         resource_type: post.mediaType === "video" ? "video" : "image",
       });
     }
 
-    // ✅ Delete from DB
+
     await Post.findByIdAndDelete(postId);
 
     res.status(200).json({ success: true, message: "Post deleted successfully" });
@@ -256,5 +236,24 @@ export const deletePost = async (req, res) => {
   }
 };
 
+export const getLikedPosts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 🔹 Find all posts where the user has liked
+    const likedPosts = await Post.find({ likes: userId })
+      .populate("user", "name email profilePic")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      totalLiked: likedPosts.length,
+      likedPosts,
+    });
+  } catch (error) {
+    console.error("Error fetching liked posts:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 

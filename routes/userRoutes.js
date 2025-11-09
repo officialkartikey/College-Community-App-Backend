@@ -2,7 +2,6 @@ import express from "express";
 import { registerUser, 
   loginUser,
    getRecommendedUsers,
-    getUserEngagement,
   getAllUsers, } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -23,8 +22,6 @@ router.get("/profile", protect, (req, res) => {
 
 
 router.get("/recommended", protect, getRecommendedUsers);
-
-router.get("/engagement", protect, getUserEngagement);
 router.get("/all", protect, getAllUsers);
 
 export default router;
