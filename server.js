@@ -56,30 +56,44 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   console.log("⚡ Socket Connected:", socket.id);
 
+  // 1️⃣ When user connects from Flutter/Web app
   socket.on("setup", (userData) => {
     socket.join(userData._id);
     socket.emit("connected");
+    console.log("👤 User connected:", userData._id);
   });
 
-  socket.on("join chat", (room) => {
-    socket.join(room);
-    console.log("📌 User joined chat:", room);
+  // 2️⃣ Join a specific chat room
+  socket.on("join chat", (roomId) => {
+    socket.join(roomId);
+    console.log(`📌 User joined room: ${roomId}`);
   });
 
-  socket.on("new message", (message) => {
-    const chat = message.chat;
-    if (!chat?.users) return;
+  // 3️⃣ When a new message is sent
+  socket.on("sendMessage", async (messageData) => {
+    try {
+      console.log("💬 New message received via socket:", messageData);
 
-    chat.users.forEach((user) => {
-      if (user._id === message.sender._id) return;
-      socket.to(user._id).emit("message received", message);
-    });
+      const chat = messageData.chat;
+      if (!chat?.users) {
+        console.warn("⚠️ No users found in chat.");
+        return;
+      }
+
+      // ✅ Emit message to everyone in that chat room (except sender)
+      io.to(chat._id).emit("newMessage", messageData);
+      console.log("✅ Emitted newMessage to room:", chat._id);
+    } catch (error) {
+      console.error("❌ Socket message error:", error.message);
+    }
   });
 
+  // 4️⃣ When user disconnects
   socket.on("disconnect", () => {
     console.log("❌ Socket Disconnected:", socket.id);
   });
 });
+
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
