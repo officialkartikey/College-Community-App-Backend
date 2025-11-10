@@ -104,18 +104,44 @@ export const addToGroup = async (req, res) => {
 
 
 export const removeFromGroup = async (req, res) => {
-  const { chatId, userId } = req.body;
+  try {
+    // ✅ Support both body or params (depending on Flutter call)
+    const chatId = req.body.chatId || req.params.chatId;
+    const userId = req.body.userId || req.params.userId;
 
-  const chat = await Chat.findByIdAndUpdate(
-    chatId,
-    { $pull: { users: userId } },
-    { new: true }
-  )
-    .populate("users", "-password")
-    .populate("groupAdmin", "-password");
+    console.log(`🗑 Removing user ${userId} from chat ${chatId}`);
 
-  res.status(200).json(chat);
+    if (!chatId || !userId) {
+      return res.status(400).json({ message: "chatId and userId are required" });
+    }
+
+    // ✅ Remove user using $pull
+    const updatedChat = await Chat.findByIdAndUpdate(
+      chatId,
+      { $pull: { users: userId } },
+      { new: true }
+    )
+      .populate("users", "name email profileImage")
+      .populate("groupAdmin", "name email");
+
+    if (!updatedChat) {
+      return res.status(404).json({ message: "Chat not found or user not removed" });
+    }
+
+    res.status(200).json({
+      message: "✅ User removed successfully",
+      group: updatedChat,
+      membersCount: updatedChat.users.length,
+    });
+  } catch (error) {
+    console.error("❌ Error removing user:", error);
+    res.status(500).json({
+      message: "Failed to remove user",
+      error: error.message,
+    });
+  }
 };
+
 
 
 export const leaveGroup = async (req, res) => {
