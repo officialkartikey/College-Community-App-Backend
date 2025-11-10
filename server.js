@@ -53,60 +53,67 @@ app.get("/", (req, res) => {
   res.send("API is running successfully 🚀");
 });
 
-// ✅ Socket.IO Setup
 io.on("connection", (socket) => {
   console.log("⚡ Socket Connected:", socket.id);
 
+  // 1️⃣ When user connects from Flutter/Web app
   socket.on("setup", (userData) => {
+    socket.userId = userData._id; // ✅ store the user's ID
     socket.join(userData._id);
     socket.emit("connected");
     console.log("👤 User connected:", userData._id);
   });
 
+  // 2️⃣ Join a specific chat room
   socket.on("join chat", (roomId) => {
     socket.join(roomId);
     console.log(`📌 User joined room: ${roomId}`);
   });
 
-  socket.on("sendMessage", async ({ roomId, message, sender }) => {
+  // 3️⃣ When a new message is sent
+  socket.on("sendMessage", async ({ roomId, message }) => {
     try {
+      if (!socket.userId) {
+        console.warn("⚠️ Missing socket.userId — call 'setup' first!");
+        return;
+      }
+
       console.log("💬 New message received via socket:", { roomId, message });
 
-      // ✅ Fetch chat from MongoDB
       const chat = await Chat.findById(roomId).populate("users", "_id name email");
 
-      if (!chat || !chat.users || chat.users.length === 0) {
+      if (!chat || chat.users.length === 0) {
         console.warn(`⚠️ No users found in chat: ${roomId}`);
         return;
       }
 
-      // ✅ Optionally save message to DB
+      // ✅ Save message with sender automatically from socket.userId
       const newMessage = await Message.create({
         chat: roomId,
-        sender: sender?._id,
+        sender: socket.userId,
         content: message,
       });
 
       await newMessage.populate("sender", "name email");
       await newMessage.populate("chat", "chatName isGroupChat");
 
-      // ✅ Emit message to all users except sender
+      // ✅ Emit message to all participants in the chat room
       chat.users.forEach((user) => {
-        if (user._id.toString() !== sender?._id) {
-          io.to(user._id.toString()).emit("newMessage", newMessage);
-        }
+        io.to(user._id.toString()).emit("newMessage", newMessage);
       });
 
-      console.log(`✅ Message emitted to ${chat.users.length - 1} members in room ${roomId}`);
+      console.log(`✅ Message from ${socket.userId} emitted to ${chat.users.length} users`);
     } catch (error) {
       console.error("❌ Socket message error:", error.message);
     }
   });
 
+  // 4️⃣ When user disconnects
   socket.on("disconnect", () => {
     console.log("❌ Socket Disconnected:", socket.id);
   });
 });
+
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
