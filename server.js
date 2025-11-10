@@ -52,7 +52,8 @@ app.get("/", (req, res) => {
   res.send("API is running successfully 🚀");
 });
 
-// ✅ Socket.IO Setup
+
+
 io.on("connection", (socket) => {
   console.log("⚡ Socket Connected:", socket.id);
 
@@ -70,19 +71,36 @@ io.on("connection", (socket) => {
   });
 
   // 3️⃣ When a new message is sent
-  socket.on("sendMessage", async (messageData) => {
+  socket.on("sendMessage", async ({ roomId, message, sender }) => {
     try {
-      console.log("💬 New message received via socket:", messageData);
+      console.log("💬 New message received via socket:", { roomId, message });
 
-      const chat = messageData.chat;
-      if (!chat?.users) {
-        console.warn("⚠️ No users found in chat.");
+      // ✅ Fetch chat from MongoDB
+      const chat = await Chat.findById(roomId).populate("users", "_id name email");
+
+      if (!chat || !chat.users || chat.users.length === 0) {
+        console.warn(`⚠️ No users found in chat: ${roomId}`);
         return;
       }
 
-      // ✅ Emit message to everyone in that chat room (except sender)
-      io.to(chat._id).emit("newMessage", messageData);
-      console.log("✅ Emitted newMessage to room:", chat._id);
+      // ✅ Optionally save message to DB
+      const newMessage = await Message.create({
+        chat: roomId,
+        sender: sender?._id,
+        content: message,
+      });
+
+      await newMessage.populate("sender", "name email");
+      await newMessage.populate("chat", "chatName isGroupChat");
+
+      // ✅ Broadcast to all users in that chat except sender
+      chat.users.forEach((user) => {
+        if (user._id.toString() !== sender?._id) {
+          io.to(user._id.toString()).emit("newMessage", newMessage);
+        }
+      });
+
+      console.log(`✅ Message emitted to ${chat.users.length - 1} members in room ${roomId}`);
     } catch (error) {
       console.error("❌ Socket message error:", error.message);
     }
@@ -93,6 +111,7 @@ io.on("connection", (socket) => {
     console.log("❌ Socket Disconnected:", socket.id);
   });
 });
+
 
 
 // ✅ Start Server
