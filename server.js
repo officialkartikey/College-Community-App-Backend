@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import http from "http";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 // 🧩 Import Routes
 import userRoutes from "./routes/userRoutes.js";
@@ -12,9 +13,10 @@ import commentRoutes from "./routes/commentRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 
-// 🧩 Import Models for Socket Events
+// 🧩 Import Models
 import Chat from "./models/chatModel.js";
 import Message from "./models/messageModel.js";
+import User from "./models/userModel.js";
 
 dotenv.config();
 
@@ -41,7 +43,7 @@ mongoose
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Routes
+// ✅ API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
@@ -53,41 +55,74 @@ app.get("/", (req, res) => {
   res.send("API is running successfully 🚀");
 });
 
-io.on("connection", (socket) => {
-  console.log("⚡ Socket Connected:", socket.id);
+/* ----------------------------------------------------
+   🔐 SOCKET.IO AUTHENTICATION USING JWT
+---------------------------------------------------- */
+io.use(async (socket, next) => {
+  try {
+    const token =
+      socket.handshake.auth?.token || socket.handshake.headers["authorization"];
+    if (!token) {
+      console.warn("⚠️ No token provided during socket connection");
+      return next(new Error("Authentication error"));
+    }
 
-  // 1️⃣ When user connects from Flutter/Web app
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id || decoded.userId).select(
+      "_id name email"
+    );
+    if (!user) return next(new Error("User not found"));
+
+    socket.user = user;
+    socket.userId = user._id.toString();
+
+    next();
+  } catch (err) {
+    console.error("❌ Socket authentication failed:", err.message);
+    next(new Error("Authentication error"));
+  }
+});
+
+/* ----------------------------------------------------
+   ⚡ SOCKET.IO EVENT HANDLERS
+---------------------------------------------------- */
+io.on("connection", (socket) => {
+  console.log("⚡ Socket Connected:", socket.id, "->", socket.user?.name);
+
+  // 1️⃣ Setup personal room
   socket.on("setup", (userData) => {
-    socket.userId = userData._id; // ✅ store the user's ID
-    socket.join(userData._id);
+    socket.join(socket.userId);
     socket.emit("connected");
-    console.log("👤 User connected:", userData._id);
+    console.log("👤 Joined personal room:", socket.userId);
   });
 
-  // 2️⃣ Join a specific chat room
+  // 2️⃣ Join specific chat room
   socket.on("join chat", (roomId) => {
     socket.join(roomId);
-    console.log(`📌 User joined room: ${roomId}`);
+    console.log(`🚪 ${socket.user.name} joined chat room: ${roomId}`);
   });
 
-  // 3️⃣ When a new message is sent
+  // 3️⃣ Handle new messages
   socket.on("sendMessage", async ({ roomId, message }) => {
     try {
       if (!socket.userId) {
-        console.warn("⚠️ Missing socket.userId — call 'setup' first!");
-        return;
+        console.warn("⚠ Missing authenticated socket.userId");
+        return socket.emit("error", { message: "Not authenticated" });
       }
 
-      console.log("💬 New message received via socket:", { roomId, message });
+      console.log("💬 Message received:", {
+        roomId,
+        message,
+        sender: socket.userId,
+      });
 
       const chat = await Chat.findById(roomId).populate("users", "_id name email");
-
-      if (!chat || chat.users.length === 0) {
-        console.warn(`⚠️ No users found in chat: ${roomId}`);
-        return;
+      if (!chat) {
+        console.warn(`⚠ Chat not found: ${roomId}`);
+        return socket.emit("error", { message: "Chat not found" });
       }
 
-      // ✅ Save message with sender automatically from socket.userId
+      // ✅ Create new message
       const newMessage = await Message.create({
         chat: roomId,
         sender: socket.userId,
@@ -97,25 +132,31 @@ io.on("connection", (socket) => {
       await newMessage.populate("sender", "name email");
       await newMessage.populate("chat", "chatName isGroupChat");
 
-      // ✅ Emit message to all participants in the chat room
+      // ✅ Emit to chat room (everyone currently in chat)
+      io.to(roomId).emit("newMessage", newMessage);
+      console.log(`📤 Emitted newMessage to chat room: ${roomId}`);
+
+      // ✅ Also emit to each user's personal room (backup)
       chat.users.forEach((user) => {
         io.to(user._id.toString()).emit("newMessage", newMessage);
       });
 
-      console.log(`✅ Message from ${socket.userId} emitted to ${chat.users.length} users`);
+      console.log(`✅ Message from ${socket.userId} sent to ${chat.users.length} users`);
     } catch (error) {
       console.error("❌ Socket message error:", error.message);
+      socket.emit("error", { message: error.message });
     }
   });
 
-  // 4️⃣ When user disconnects
+  // 4️⃣ Handle disconnect
   socket.on("disconnect", () => {
     console.log("❌ Socket Disconnected:", socket.id);
   });
 });
 
-
-// ✅ Start Server
+/* ----------------------------------------------------
+   🚀 START SERVER
+---------------------------------------------------- */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server + Socket running on port ${PORT}`);

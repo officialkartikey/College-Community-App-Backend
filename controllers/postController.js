@@ -33,7 +33,8 @@ export const createPost = async (req, res) => {
     let { title, description, category } = req.body;
     const file = req.file;
 
-    // 🧩 Validate input
+   
+    
     if (!userId) {
       return res.status(401).json({ message: "Authentication failed. User ID missing." });
     }
@@ -41,15 +42,13 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "No media file uploaded." });
     }
 
-    // 🧠 Normalize categories
-    // Handles: array, JSON string, or comma-separated string
+   
     if (typeof category === "string") {
       try {
-        // Case 1: JSON string like '["Tech","AI"]'
         const parsed = JSON.parse(category);
         category = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
-        // Case 2: comma-separated like 'Tech,AI,Education'
+       
         category = category.split(",").map((c) => c.trim());
       }
     }
@@ -57,19 +56,19 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "At least one category is required." });
     }
 
-    // 🔍 Spam check
+    
     const spamResult = await checkSpam(`${title} ${description}`);
     if (spamResult.isSpam && spamResult.action === "reject") {
       return res.status(400).json({ message: "Spam content detected. Post rejected." });
     }
 
-    // ☁️ Upload to Cloudinary
+  
     const result = await cloudinary.uploader.upload(file.path, {
       folder: "college-community/posts",
       resource_type: "auto",
     });
 
-    // 🧩 Save Post in DB
+    
     const newPost = new Post({
       title,
       description,
@@ -197,16 +196,16 @@ export const getRecommendedFeed = async (req, res) => {
     const userId = req.user._id.toString();
     console.log("📡 Fetching recommendations for user:", userId);
 
-    // 1️⃣ Try to get AI-based recommendations
+   
     const response = await axios.post(
       "https://feed-recommendation-3.onrender.com/recommend_posts/",
       { user_id: userId },
-      { headers: { "Content-Type": "application/json" }, timeout: 10000 } // 10s timeout
+      { headers: { "Content-Type": "application/json" }, timeout: 10000 } 
     );
 
     const recommendedPosts = response.data.recommendations;
 
-    // 2️⃣ If API returns empty, use fallback feed
+   
     if (!Array.isArray(recommendedPosts) || recommendedPosts.length === 0) {
       console.warn("⚠️ No recommendations — returning fallback feed.");
       const fallback = await Post.find()
@@ -216,24 +215,24 @@ export const getRecommendedFeed = async (req, res) => {
       return res.status(200).json(fallback);
     }
 
-    // 3️⃣ Otherwise, fetch the recommended posts from DB
+   
     const ids = recommendedPosts.map((p) => p.post_id);
     let posts = await Post.find({ _id: { $in: ids } }).populate("user", "name email");
     posts = ids.map((id) => posts.find((p) => p._id.toString() === id)).filter(Boolean);
 
-    // ✅ Success
+
     res.status(200).json(posts);
   } catch (error) {
-    // 4️⃣ If ANY error occurs — no crash, no spam, fallback instead
+    
     console.error("❌ Feed Recommendation Error:", error.message);
 
-    // fallback feed: show recent posts from DB
+  
     const fallback = await Post.find()
       .populate("user", "name email")
       .sort({ createdAt: -1 })
       .limit(20);
 
-    // Return 200 OK with fallback posts (not 500)
+    
     res.status(200).json(fallback);
   }
 };
@@ -272,7 +271,7 @@ export const getLikedPosts = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 🔹 Find all posts where the user has liked
+   
     const likedPosts = await Post.find({ likes: userId })
       .populate("user", "name email profilePic")
       .sort({ createdAt: -1 });
@@ -293,10 +292,10 @@ export const getMyPosts = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 🔹 Find all posts created by this user
+    
     const myPosts = await Post.find({ user: userId })
-      .populate("user", "name email profilePic") // Include creator details
-      .sort({ createdAt: -1 }); // Newest first
+      .populate("user", "name email profilePic")
+      .sort({ createdAt: -1 }); 
 
     if (!myPosts.length) {
       return res.status(404).json({
