@@ -5,6 +5,8 @@ import {
   getRecommendedUsers,
   getAllUsers,
   uploadProfilePhoto,
+  resetPassword,
+  forgotPassword,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { uploadToMemory } from "../middleware/uploadMiddleware.js"; // ✅ Correct import
@@ -35,5 +37,11 @@ router.post(
 // 🔹 Recommended + All Users
 router.get("/recommended", protect, getRecommendedUsers);
 router.get("/all", protect, getAllUsers);
+
+// Forgot Password (Send Email)
+router.post("/forgot-password", forgotPassword);
+
+// Reset Password (With token from deep link)
+router.post("/reset-password/:token", resetPassword);
 
 export default router;

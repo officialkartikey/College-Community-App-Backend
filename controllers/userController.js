@@ -7,8 +7,103 @@ import Post from "../models/post.js";
 import Comment from "../models/comment.js";
 import cloudinary from "../config/cloudinary.js";
 
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;        // token from URL (deep link)
+    const { password } = req.body;       
+
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+  
+    const hashedToken = crypto.createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }, 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+   
+    user.password = password;
+
+ 
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    return res.json({ message: "Password reset successful!" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+   
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    await user.save();
+
+ 
+    const resetURL = `myapp://reset-password/${resetToken}`;
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.MAIL_EMAIL,
+        pass: process.env.MAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Password Reset" <${process.env.MAIL_EMAIL}>`,
+      to: user.email,
+      subject: "Reset Password",
+      html: `
+        <h3>Password Reset Request</h3>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetURL}">${resetURL}</a>
+
+        <p>If the link doesn't open the app, copy and paste it:</p>
+        <p>${resetURL}</p>
+
+        <br/>
+        <p>This link will expire in 15 minutes.</p>
+      `,
+    });
+
+    return res.json({ message: "Password reset link sent to your email!" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
 
 /**
